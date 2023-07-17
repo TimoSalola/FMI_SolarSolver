@@ -1,3 +1,4 @@
+import pymapper.mapper
 import cloud_free_day_finder
 import geoguesser_latitude
 import geoguesser_longitude
@@ -111,7 +112,7 @@ def plot_clear_day():
 # Tests for geolocation estimation
 ####################################
 
-def estimate_longitude_v2(): # works, used in thesis
+def estimate_longitude_v2():  # works, used in thesis
     ###############################################################
     #   This function contains an example on how to estimate geographic longitudes
     #   The method relies on geoguesser_longitude_v2.estimate_longitude_based_on_year(year_data)
@@ -128,34 +129,35 @@ def estimate_longitude_v2(): # works, used in thesis
     year_data = splitters.slice_xa(data, year_n, year_n, 125, 250)
 
     # estimating longitude with one year of data
-    geoguesser_longitude_v2.estimate_longitude_based_on_year(year_data)
+    geoguesser_longitude.estimate_longitude_based_on_year(year_data)
 
     # estimating every year
     for year_n in range(2017, 2022):
         year_data = splitters.slice_xa(data, year_n, year_n, 125, 250)
 
-        estimated_longitude = geoguesser_longitude_v2.estimate_longitude_based_on_year(year_data)
+        estimated_longitude = geoguesser_longitude.estimate_longitude_based_on_year(year_data)
         print("year: " + str(year_n) + " estimated longitude: " + str(estimated_longitude))
 
 
-
-def estimate_latitude(): # works,  used in thesis
+def estimate_latitude():  # works,  used in thesis
     ###############################################################
     #   This function contains an example on latitude estimation.
     #   Estimation uses functions from file geoguesser_latitude.py which is fairly messy
     ###############################################################
     data = solar_power_data_loader.get_fmi_helsinki_data_as_xarray()
 
-    for year in range(2017, 2022):
-        estimated_latitude = geoguesser_latitude.slopematch_estimate_latitude_using_single_year(data, year, 190, 250)
-        print("year " + str(year) + " lat 1: " + str(estimated_latitude[0]) + ", lat 2: " + str(estimated_latitude[1]))
+    for year_n in range(2017, 2022):
+        estimated_latitude = geoguesser_latitude.slopematch_estimate_latitude_using_single_year(data, year_n, 190, 250)
+        print(
+            "year " + str(year_n) + " lat 1: " + str(estimated_latitude[0]) + ", lat 2: " + str(estimated_latitude[1]))
+
 
 ####################################
 # Test for multiplier estimation
 ####################################
 
 
-def match_multiplier(): # not used in thesis, yet
+def match_multiplier():  # not used in thesis, yet
     ###############################################################
     #   This function plots a clear day from dataset and a poa plot with automated multiplier matching
     ###############################################################
@@ -188,18 +190,18 @@ def match_multiplier(): # not used in thesis, yet
                                                    day_n, 15, 135, multiplier)
 
     # plotting single segment multiplier matched poa
-    matplotlib.pyplot.plot(poa.minute.values, poa.POA.values,  c=config.ORANGE, label="Area matched multiplier")
+    matplotlib.pyplot.plot(poa.minute.values, poa.POA.values, c=config.ORANGE, label="Area matched multiplier")
 
     # creating multi-segment multiplier matched poa
     poa2 = pvlib_poa.get_irradiance(year_n, config.HELSINKI_KUMPULA_LATITUDE, config.HELSINKI_KUMPULA_LONGITUDE, day_n,
-                                   15, 135)
-    multiplier = multiplier_matcher.get_estimated_multiplier_for_day_with_segments(day, poa2,10)
+                                    15, 135)
+    multiplier = multiplier_matcher.get_estimated_multiplier_for_day_with_segments(day, poa2, 10)
     poa2 = pvlib_poa.get_irradiance_with_multiplier(year_n, config.HELSINKI_KUMPULA_LATITUDE,
-                                                   config.HELSINKI_KUMPULA_LONGITUDE,
-                                                   day_n, 15, 135, multiplier)
+                                                    config.HELSINKI_KUMPULA_LONGITUDE,
+                                                    day_n, 15, 135, multiplier)
 
     # plotting multi-segment multiplier matched poa
-    matplotlib.pyplot.plot(poa2.minute.values, poa2.POA.values,  c=config.PURPLE, label="Segment matched multiplier")
+    matplotlib.pyplot.plot(poa2.minute.values, poa2.POA.values, c=config.PURPLE, label="Segment matched multiplier")
 
     day = day.dropna(dim="minute")
     powers = day["power"].values[0][0]
@@ -217,7 +219,12 @@ def match_multiplier(): # not used in thesis, yet
 
     matplotlib.pyplot.show()
 
+
 def plot_multi_segment_partly_cloudy():
+    """
+    plots n segment based multiplier matching visualization for a cloudy day
+    :return:
+    """
     data = solar_power_data_loader.get_fmi_helsinki_data_as_xarray()
 
     # selecting year
@@ -228,9 +235,10 @@ def plot_multi_segment_partly_cloudy():
 
     matplotlib.rcParams.update({'font.size': 14})
 
-    #segments = multiplier_matcher.get_measurements_split_into_n_segments(day, 10)
+    # segments = multiplier_matcher.get_measurements_split_into_n_segments(day, 10)
 
-    poa = pvlib_poa.get_irradiance(year_n, config.HELSINKI_KUMPULA_LATITUDE, config.HELSINKI_KUMPULA_LONGITUDE,85, 15, 135)
+    poa = pvlib_poa.get_irradiance(year_n, config.HELSINKI_KUMPULA_LATITUDE, config.HELSINKI_KUMPULA_LONGITUDE, 85, 15,
+                                   135)
     segments, multipliers2 = multiplier_matcher.get_segments_and_multipliers(day, 10, poa)
     print(multipliers2)
 
@@ -243,8 +251,51 @@ def plot_multi_segment_partly_cloudy():
         powers = segment.power.values[0][0]
         matplotlib.pyplot.fill_between(minutes, powers, alpha=0.8)
 
-
-
     matplotlib.pyplot.show()
 
-plot_multi_segment_partly_cloudy()
+
+def plot_multi_year_geolocations_on_map():
+    """
+    Estimates geolocations for installation per year and plots them with pymapper
+    """
+
+    #data = solar_power_data_loader.get_fmi_helsinki_data_as_xarray()
+    data = solar_power_data_loader.get_fmi_kuopio_data_as_xarray()
+
+
+    pymapper.mapper.toggle_grid(True)
+    pymapper.mapper.create_map()
+
+    # estimating every year
+    for year_n in range(2017, 2022):
+        #estimating longitude
+        year_data = splitters.slice_xa(data, year_n, year_n, 125, 250)
+        estimated_longitude = geoguesser_longitude.estimate_longitude_based_on_year(year_data)
+        #print("year: " + str(year_n) + " estimated longitude: " + str(estimated_longitude))
+
+        # estimating latitude
+        estimated_latitude = geoguesser_latitude.slopematch_estimate_latitude_using_single_year(data, year_n, 190, 250)
+        #print( "year " + str(year_n) + " lat 1: " + str(estimated_latitude[0]) + ", lat 2: " + str(estimated_latitude[1]))
+
+        #taking the average of two estimated latitude values
+        estimated_latitude_n = (estimated_latitude[0]+estimated_latitude[1])/2
+
+        # plotting point and year on map
+        pymapper.mapper.plot_point(estimated_latitude_n, estimated_longitude)
+        pymapper.mapper.add_text_to_map(str(year_n), estimated_latitude_n, estimated_longitude)
+
+    # helsinki restrictions and FMI Helsinki point
+    #pymapper.mapper.limit_map_to_region(62.5, 59.2, 22, 28)
+    # pymapper.mapper.plot_point(config.HELSINKI_KUMPULA_LATITUDE, config.HELSINKI_KUMPULA_LONGITUDE, color="purple")
+    # pymapper.mapper.add_text_to_map("Kumpula", config.HELSINKI_KUMPULA_LATITUDE, config.HELSINKI_KUMPULA_LONGITUDE)
+
+
+    # kuopio restrictions and FMI Kuopio point
+    pymapper.mapper.limit_map_to_region(63.75, 60.2, 24, 31)
+    pymapper.mapper.plot_point(config.KUOPIO_FMI_LATITUDE, config.KUOPIO_FMI_LONGITUDE, color="purple")
+    pymapper.mapper.add_text_to_map("FMI Kuopio", config.KUOPIO_FMI_LATITUDE, config.KUOPIO_FMI_LONGITUDE)
+
+    pymapper.mapper.show_map()
+
+
+plot_multi_year_geolocations_on_map()
