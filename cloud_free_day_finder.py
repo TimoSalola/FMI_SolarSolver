@@ -1,8 +1,13 @@
 import math
+import random
 
+import matplotlib.pyplot
 import numpy
 
 import splitters
+
+matplotlib.rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
+matplotlib.rc('text', usetex=True)
 
 
 def find_smooth_days_xa(year_xa, day_start, day_end, threshold_percent):
@@ -30,6 +35,86 @@ def find_smooth_days_numbers(year_xa, day_start, day_end, threshold_percent):
     #print(year_xa)
     results = __find_smooth_days(year_xa, day_start, day_end, threshold_percent)
     return results[1]
+
+
+def cloud_free_day_finder_visual(year_xa, day_start, day_end, threshold_percent):
+    """
+    Visualization function, useful for debugging or function tuning
+    :param year_xa: one year of xarray data
+    :param day_start: first day to consider
+    :param day_end: last day to consider
+    :param threshold_percent: acceptable smoothness value, lower value, fewer results
+    :return: None, should not return anything
+    """
+
+
+    # loading smooth days and their numbers
+    smooth_days_xa, smooth_days_numbers = __find_smooth_days(year_xa, day_start, day_end, threshold_percent)
+
+    # taking random day from smooth days list
+    random_day = smooth_days_xa[random.randint(0, len(smooth_days_xa))]
+
+    # loading minutes and powers
+    random_day = random_day.dropna(dim="minute")
+    minutes = random_day.minute.values
+    powers = random_day.power.values[0][0]
+
+    # selecting random day number which is outside smooth_day_numbers
+    random_day_n = 0
+    while True:
+        random_day_n = random.randint(day_start, day_end)
+        if random_day_n not in smooth_days_numbers:
+            break
+
+    # loading year number from xa
+    year_n = year_xa.year.values[0]
+
+    # loading random not smooth day from xa
+    messy_day = splitters.slice_xa(year_xa, year_n, year_n, random_day_n, random_day_n)
+    messy_day = messy_day.dropna(dim="minute")
+
+    # loading plottables from messy day
+    messy_day_minutes = messy_day.minute.values
+    messy_day_powers = messy_day.power.values[0][0]
+
+    # creating 2 part plot
+    fig, axs = matplotlib.pyplot.subplots(2,2)
+
+    # handling plot 1
+    axs[0,0].scatter(minutes, powers, s=0.2)
+    axs[0,0].set_xlabel("Minute")
+    axs[0,0].set_ylabel("Power")
+    axs[0,0].set_title("Clear day")
+
+    axs[1,0].scatter(messy_day_minutes, messy_day_powers, s=0.2)
+    axs[1,0].set_xlabel("Minute")
+    axs[1,0].set_ylabel("Power")
+    axs[1, 0].set_title("Cloudy day")
+
+    # right hand size
+    # FFT filtering on clear day powers
+    clear_day_powers_fft = __fourier_filter(powers, 6)
+
+    messy_day_powers_fft = __fourier_filter(messy_day_powers, 6)
+
+
+
+    axs[0, 1].scatter(minutes, clear_day_powers_fft, s=0.2)
+    axs[0, 1].set_xlabel("Minute")
+    axs[0, 1].set_ylabel("Power")
+    axs[0, 1].set_title("Clear day after filtering")
+
+    axs[1, 1].scatter(messy_day_minutes, messy_day_powers_fft, s=0.2)
+    axs[1, 1].set_xlabel("Minute")
+    axs[1, 1].set_ylabel("Power")
+    axs[1, 1].set_title("Cloudy day after filtering")
+
+
+
+    matplotlib.pyplot.show()
+
+
+
 
 
 def __find_smooth_days(year_xa, day_start, day_end, threshold_percent):
@@ -66,6 +151,7 @@ def __find_smooth_days(year_xa, day_start, day_end, threshold_percent):
         # print("day: " + str(day_number) + " percents off from smooth approximation: " + str(smoothness_value))
 
     return smooth_days_xa, smooth_days_numbers
+
 
 
 ############################
@@ -124,16 +210,7 @@ def __day_smoothness_value(day_xa):
         distances += distance
 
     # transforming powers into fourier series, removing most values and returning back into time domain
-
-    powers_as_fourier = numpy.fft.fft(powers)
-    values_from_ends = 6
-    powers_as_fourier[values_from_ends:len(powers_as_fourier) - values_from_ends] = [0] * (
-            len(powers_as_fourier) - 2 * values_from_ends)
-    powers_from_fourier = numpy.fft.ifft(powers_as_fourier)
-    powers_from_fourier_clean = []
-
-    for var in powers_from_fourier:
-        powers_from_fourier_clean.append(var.real)
+    powers_from_fourier_clean = __fourier_filter(powers, 6)
 
     # this normalizes error in respect to value count
     errors = abs(powers_from_fourier_clean - powers)
@@ -187,3 +264,36 @@ def __get_measurement_to_poa_delta(xa_day, poa):
         minutes.append(xa_minute)
 
     return deltas, percent_deltas, minutes
+
+
+def __fourier_filter(values, values_from_ends):
+    """
+    :param values: array of values
+    :param values_from_ends: how many of the longest frequencies to spare
+    :return: values after shorter frequencies are removed
+    """
+
+    # FFT based low pass filter
+    # Converting values to Fourier transform frequency representatives
+    values_fft = numpy.fft.fft(values)
+    # values in values_fft represent the frequencies which make up the values array. Structure is as follows:
+    # [low, low, ... med, med .... high, high .... med, med .... low,low]
+    # this means that by zeroing out most of the values in the center, only the low frequency parts can be chosen
+
+
+    # zeroing out every value which is further than [values_from_ends] from the ends of the values_fft array
+    values_fft[values_from_ends:len(values_fft) - values_from_ends] = [0] * (
+            len(values_fft) - 2 * values_from_ends)
+
+    # reversing the fft operation, resulting in values with only low frequency components
+    values_ifft = numpy.fft.ifft(values_fft)
+
+    # fft results can be partly imaginary, eq. 2.5 + 2i. Imaginary part should be small as
+    values_ifft_real = []
+
+    # saving only real components
+    for var in values_ifft:
+        values_ifft_real.append(var.real)
+
+    # returning the result of the low pass filter
+    return values_ifft_real

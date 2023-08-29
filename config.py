@@ -17,21 +17,18 @@ HELSINKI_KUMPULA_LONGITUDE = 24.961
 KUOPIO_FMI_LONGITUDE = 27.634
 KUOPIO_FMI_LATITUDE = 62.892
 ############################
-#   USEFUL DAYS
+#   USEFUL DAYS, not currently used in code
 ############################
 SPRING_CORE = 85,  # equinox
 FALL_CORE = 260  # equinox
 CORE_RANGE = 15  # ray range from equinox that can be considered good
 
 
-
 #
-
 DEFAULT_TILT = 30
 DEFAULT_FACING =180
 DEFAULT_LONG = 28  #28
 DEFAULT_LAT = 70 #60
-
 
 
 ############################

@@ -1,0 +1,9 @@
+File maakunnat_siistitty.x is from
+https://www.avoindata.fi/data/fi/dataset/suomen-maakunnat-2021-vuoden-2018-maakuntakoodeilla
+The file is based on one of the "land area only" -files and smallest polygons have been removed. 
+The geometry has also been simplified in qgis in order to speed up plotting
+
+Original file was published with Creative Commons Attribution 4.0 -license
+
+
+

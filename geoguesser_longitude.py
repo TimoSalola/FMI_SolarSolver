@@ -4,6 +4,13 @@ import pvlib_poa
 import splitters
 
 
+###############################################################
+#   Longitude estimation functions
+#   The functions here perform well for both Kuopio and Helsinki datasets
+#   Accuracy for these datasets is somewhere in less than 1 degree of delta.
+#
+###############################################################
+
 def longitude_from_solar_noon_solar_noon_poa(long0, solar_noon, solar_noon_poa):
     """
     Improved longitude estimation function
@@ -132,7 +139,7 @@ def __xa_dirty_get_first_last_minute_of_solar_output(xa_day):
             return None, None  # unable to parse
 
     elif longest_gap > 100 and second_longest_gap < 15:
-        # reasonably well behaved 2 part block, +++++++++0000000+++++++++++++++
+        # reasonably well-behaved 2 part block, +++++++++0000000+++++++++++++++
         print("reasonably well behaved 2 part block")
         if minutes[0] < 10 and minutes[len(minutes) - 1] > 1420:
             print("likely to be reasonably well behaving block")

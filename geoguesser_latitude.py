@@ -6,7 +6,10 @@ import splitters
 
 
 ###############################################################
-#   Latitude estimation function
+#   Latitude estimation functions
+#   The functions here perform well for FMI helsinki dataset and less so for Kuopio dataset.
+#   Accuracy for these datasets is somewhere in the 5 to 15 degree range due to pvlib poa simulation not being ideal
+#   for latitude predictions
 ###############################################################
 
 
@@ -136,7 +139,7 @@ def __minute_list_to_first_last(minutelist):
     # 1. CALCULATE LENGTH OF GIVEN LIST
     # 2. REJECT IF LEN IS BAD
     # 3. RETURN FIRST AND LAST MINUTES IF THEY ARE OBVIOUS
-    # 4. EXAMINE DIFFICULT CASES ON CASE BY CASE BASIS
+    # 4. EXAMINE DIFFICULT CASES ON CASE BY CASE BASIS AND RETURN HARDER CASES
     # 5. RETURN NONE, NONE IF NONE OF THE CASES APPLIED
     ##############################
 

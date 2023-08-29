@@ -1,6 +1,6 @@
-
 #####################################################################
 #   Functions for multiplier matching
+#   Only get_estimated_multiplier_for_day and __helpers are needed, other functions are
 #####################################################################
 
 def get_estimated_multiplier_for_day(measurements, poa):
@@ -17,22 +17,16 @@ def get_estimated_multiplier_for_day(measurements, poa):
     measured_minutes, measured_powers = __measurements_to_mins_powers(measurements)
     poa_minutes, poa_powers = __poa_to_mins_powers(poa)
 
-
-
     sum_poa = sum(poa_powers)
     sum_mea = sum(measured_powers)
 
     if sum_poa == 0 or sum_mea == 0:
         return None
 
-
-
     ratio = sum_mea / sum_poa
 
-    print("sum of poa " + str(sum_poa) + " and measurements " + str(sum_mea)+ " ratio was " + str(ratio))
+    print("sum of poa " + str(sum_poa) + " and measurements " + str(sum_mea) + " ratio was " + str(ratio))
     return ratio
-
-
 
 
 def get_measurement_segment_n_of_k(measurements, n, k):
@@ -49,16 +43,16 @@ def get_measurement_segment_n_of_k(measurements, n, k):
     minutes, powers = __measurements_to_mins_powers(measurements)
 
     first_min = minutes[0]
-    last_min = minutes[len(minutes)-1]
+    last_min = minutes[len(minutes) - 1]
 
     print("first and last minutes: " + str(first_min) + " to " + str(last_min))
 
-    segment_len = (last_min-first_min*1.0)/k
+    segment_len = (last_min - first_min * 1.0) / k
 
-    segment_start_min = int(first_min + (n-1)*segment_len)
-    segment_last_min = int(first_min + n*segment_len)-1
+    segment_start_min = int(first_min + (n - 1) * segment_len)
+    segment_last_min = int(first_min + n * segment_len) - 1
 
-    print("segment " + str(n) + " of " + str(k)+ " was " + str(segment_start_min) + " to " +str(segment_last_min))
+    print("segment " + str(n) + " of " + str(k) + " was " + str(segment_start_min) + " to " + str(segment_last_min))
 
     measurements_in_range = measurements.where(measurements["minute"] >= segment_start_min)
     measurements_in_range = measurements_in_range.where(measurements_in_range["minute"] <= segment_last_min)
@@ -84,9 +78,7 @@ def get_measurements_split_into_n_segments(measurements, segment_count):
     return segments
 
 
-
 def get_segments_and_multipliers(measurements, segment_count, poa):
-
     # splitting measurements into segments
     segments = get_measurements_split_into_n_segments(measurements, segment_count)
 
@@ -94,13 +86,13 @@ def get_segments_and_multipliers(measurements, segment_count, poa):
     multipliers = []
 
     for segment in segments:
-        #print(segment)
+        # print(segment)
         first_segment_minute = segment.minute.values[0]
-        last_segment_minute = segment.minute.values[len(segment.minute.values)-1]
-        poa_in_range = poa.where(poa["minute"]>= first_segment_minute)
+        last_segment_minute = segment.minute.values[len(segment.minute.values) - 1]
+        poa_in_range = poa.where(poa["minute"] >= first_segment_minute)
         poa_in_range = poa_in_range.where(poa["minute"] <= last_segment_minute)
         poa_in_range = poa_in_range.dropna()
-        #print(poa_in_range)
+        # print(poa_in_range)
         multiplier = get_estimated_multiplier_for_day(segment, poa_in_range)
         multipliers.append(multiplier)
 
@@ -110,29 +102,27 @@ def get_segments_and_multipliers(measurements, segment_count, poa):
 
 
 def get_cluster_multiplier_and_segments(segments, multipliers, percents):
-
     max_multiplier = max(multipliers)
 
-    window_size = max_multiplier*(percents/100)
+    window_size = max_multiplier * (percents / 100)
 
-    #print(window_size)
+    # print(window_size)
 
     best_range_count = 0
     best_range_center = 0
 
     for i in range(len(multipliers)):
         center = multipliers[i]
-        low = center-window_size/2
-        high = center+window_size/2
-        in_range = sum(1 for value in multipliers if low<= value <= high)
+        low = center - window_size / 2
+        high = center + window_size / 2
+        in_range = sum(1 for value in multipliers if low <= value <= high)
 
         if in_range > best_range_count:
             best_range_count = in_range
             best_range_center = center
 
-
-    #print("in range: " + str(best_range_count))
-    #print("range: " + str(best_range_center-window_size/2) + " - " +str(best_range_center+window_size/2))
+    # print("in range: " + str(best_range_count))
+    # print("range: " + str(best_range_center-window_size/2) + " - " +str(best_range_center+window_size/2))
 
     segments_in_range = []
     multipliers_in_range = []
@@ -141,18 +131,15 @@ def get_cluster_multiplier_and_segments(segments, multipliers, percents):
         multiplier = multipliers[i]
         segment = segments[i]
 
-        if best_range_center-window_size/2 <= multiplier <= best_range_center+window_size/2:
+        if best_range_center - window_size / 2 <= multiplier <= best_range_center + window_size / 2:
             segments_in_range.append(segment)
             multipliers_in_range.append(multiplier)
 
-    average_multiplier = sum(multipliers_in_range)/len(multipliers_in_range)
-    #print(multipliers_in_range)
-    #print(segments_in_range)
+    average_multiplier = sum(multipliers_in_range) / len(multipliers_in_range)
+    # print(multipliers_in_range)
+    # print(segments_in_range)
 
     return average_multiplier, segments_in_range
-
-
-
 
 
 def get_estimated_multiplier_for_day_with_segments(measurements, poa, segments):
@@ -187,7 +174,7 @@ def get_estimated_multiplier_for_day_with_segments(measurements, poa, segments):
 
     # calculating multiplier for each segment
     for segment in range(segments):
-        #print("segment " + str(segment)+ " interval " + str(start) + " to " + str(end))
+        # print("segment " + str(segment)+ " interval " + str(start) + " to " + str(end))
         mea_segment = measurements.where((start <= measurements.minute) & (measurements.minute < end))
         mea_segment = mea_segment.dropna(dim="minute")
 
@@ -198,9 +185,9 @@ def get_estimated_multiplier_for_day_with_segments(measurements, poa, segments):
 
         if ratio is None:
             # if ratio is faulty, don't add
-            #ends.append(end)
-            #starts.append(start)
-            #ratios.append(0)
+            # ends.append(end)
+            # starts.append(start)
+            # ratios.append(0)
 
             start += segment_size
             end += segment_size
@@ -214,7 +201,7 @@ def get_estimated_multiplier_for_day_with_segments(measurements, poa, segments):
         end += segment_size
 
     # sorting ratios as that makes 1D clustering easier
-    #print(ratios)
+    # print(ratios)
     sorted_ratios = ratios.copy()
     sorted_ratios.sort()
 
@@ -235,7 +222,7 @@ def get_estimated_multiplier_for_day_with_segments(measurements, poa, segments):
     # reading values from sorted multiplier list one by one
     for center_index in range(len(sorted_ratios)):
         center_value = sorted_ratios[center_index]
-        #print(center_index)
+        # print(center_index)
 
         in_negative_direction = 0
         in_positive_direction = 0
@@ -275,7 +262,8 @@ def get_estimated_multiplier_for_day_with_segments(measurements, poa, segments):
         # in_positive_direction))
 
     print("best interval was " + str(highest_total_range) + " from index " + str(highest_total_range_min_index) + " to "
-    "index " + str( highest_total_range_max_index))
+                                                                                                                  "index " + str(
+        highest_total_range_max_index))
 
     sum_of_in_range = 0
     for i in range(highest_total_range_min_index, highest_total_range_max_index + 1):
@@ -287,6 +275,8 @@ def get_estimated_multiplier_for_day_with_segments(measurements, poa, segments):
 
     return average
 
+
+#### HELPERS
 
 def __poa_to_mins_powers(poa):
     """
